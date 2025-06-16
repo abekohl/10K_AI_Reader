@@ -1,0 +1,16 @@
+[
+    {
+        "filingDate": "2023-09-30",
+        "form": "10-K",
+        "primaryDocument": "aapl-20230930.htm",
+        "primaryDocDescription": "10-K",
+        "size": 12345678
+    },
+    {
+        "filingDate": "2022-09-30",
+        "form": "10-K",
+        "primaryDocument": "aapl-20220930.htm",
+        "primaryDocDescription": "10-K",
+        "size": 12345678
+    }
+] 

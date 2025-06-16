@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10-K AI Reader</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+    :root {
+        --primary-color: #2563eb;
+        --primary-hover: #1d4ed8;
+        --background-color: #f8fafc;
+        --text-color: #1e293b;
+        --border-color: #e2e8f0;
+        --success-color: #10b981;
+        --danger-color: #ef4444;
+        --warning-color: #f59e0b;
+        --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    }
+
+    body {
+        background-color: #f8f9fa;
+        color: var(--text-color);
+        font-family: system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .card {
+        border: none;
+        border-radius: 10px;
+    }
+
+    .card-header {
+        border-radius: 10px 10px 0 0 !important;
+    }
+
+    .form-control {
+        border-radius: 5px;
+    }
+
+    .btn-primary {
+        border-radius: 5px;
+        padding: 0.75rem 1.5rem;
+    }
+
+    #loading {
+        padding: 2rem;
+    }
+
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    .card-title {
+        font-size: 2rem;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 2rem;
+        color: var(--text-color);
+    }
+
+    .nav-tabs {
+        border-bottom: 2px solid var(--border-color);
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .nav-tabs .nav-link {
+        color: var(--text-color);
+        border: 1px solid transparent;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem 0.5rem 0 0;
+        transition: all 0.2s ease;
+    }
+
+    .nav-tabs .nav-link:hover {
+        border-color: var(--border-color);
+        background: #f1f5f9;
+    }
+
+    .nav-tabs .nav-link.active {
+        border: 1px solid var(--primary-color);
+        border-bottom-color: transparent;
+        font-weight: 600;
+        background: white;
+        color: var(--primary-color);
+    }
+
+    .list-group-item {
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 0.75rem;
+        padding: 1rem;
+        background: white;
+        color: var(--text-color);
+        transition: all 0.2s ease;
+    }
+
+    .list-group-item:hover {
+        background: #f1f5f9;
+    }
+
+    .year-analysis {
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        background: white;
+        box-shadow: var(--card-shadow);
+    }
+
+    .year-analysis h4 {
+        font-size: 1.25rem;
+        margin-bottom: 1.25rem;
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    pre {
+        background: #f8fafc;
+        border: 1px solid var(--border-color);
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.95rem;
+        color: var(--text-color);
+        overflow-x: auto;
+    }
+
+    .alert {
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        background: #f8fafc;
+        color: var(--text-color);
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .alert-primary {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: var(--primary-color);
+    }
+
+    .alert-danger {
+        background: #fef2f2;
+        border-color: #fee2e2;
+        color: var(--danger-color);
+    }
+
+    .metrics-section h6 {
+        color: var(--primary-color);
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+        .metrics-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .metrics-table td {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+    }
+    
+    .metrics-table td:first-child {
+        font-weight: 500;
+        background: #f8fafc;
+        width: 60%;
+    }
+    
+    .metrics-table td:last-child {
+        text-align: right;
+        font-family: monospace;
+            font-size: 0.9rem;
+        }
+    
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin-right: -0.75rem;
+        margin-left: -0.75rem;
+    }
+    
+    .col-md-6 {
+        position: relative;
+        width: 100%;
+        padding-right: 0.75rem;
+        padding-left: 0.75rem;
+    }
+    
+    @media (min-width: 768px) {
+        .col-md-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+    }
+    
+    .mt-4 {
+        margin-top: 2rem;
+    }
+    
+    .mb-3 {
+        margin-bottom: 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+        }
+
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        .year-analysis {
+            padding: 1.25rem;
+        }
+
+        .nav-tabs {
+                overflow-x: auto;
+            flex-wrap: nowrap;
+                -webkit-overflow-scrolling: touch;
+            }
+
+        .nav-tabs .nav-link {
+            white-space: nowrap;
+            }
+        }
+
+    .loading {
+        display: none;
+        text-align: center;
+        margin: 20px 0;
+    }
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
+    .progress {
+        height: 25px;
+    }
+    .progress-bar {
+        transition: width 0.5s ease-in-out;
+    }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+                    <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="card-title mb-0">10-K AI Reader</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="analyze-form" class="mb-4">
+                            <div class="input-group">
+                                <input type="text" id="ticker" class="form-control form-control-lg" placeholder="Enter stock ticker (e.g., AAPL)" required>
+                                <button type="submit" id="analyze-btn" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-search me-2"></i>Analyze
+                                </button>
+                            </div>
+                        </form>
+
+                        <div id="error" class="alert alert-danger" style="display: none;"></div>
+
+                        <div id="loading" class="text-center py-5" style="display: none;">
+                            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <h4 class="mb-3">Analyzing 10-K Filings</h4>
+                            <p class="text-muted">This may take a few minutes as we process multiple years of data...</p>
+                            <div class="progress mt-4" style="height: 4px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                            </div>
+                        </div>
+
+                        <div id="result" style="display: none;">
+                            <div id="companyName" class="text-center mb-4"></div>
+                            <div id="analysisContent"></div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if analyses %}
+        <div class="card mt-4">
+            <div class="card-body">
+                <h2 class="h4 mb-3">Previous Analyses</h2>
+                <div class="list-group">
+                    {% for analysis in analyses %}
+                    <a href="#" class="list-group-item list-group-item-action" 
+                       data-ticker="{{ analysis.ticker }}" 
+                       data-date="{{ analysis.date }}">
+                        {{ analysis.ticker }} - {{ analysis.date }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://kit.fontawesome.com/1234567890.js" crossorigin="anonymous"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const analyzeForm = document.getElementById('analyze-form');
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const loadingDiv = document.getElementById('loading');
+            const errorDiv = document.getElementById('error');
+            const resultDiv = document.getElementById('result');
+            const companyNameEl = document.getElementById('companyName');
+            const analysisContent = document.getElementById('analysisContent');
+            const copyBtn = document.getElementById('copy-btn');
+
+            // Utility functions
+            function showLoading() {
+                loadingDiv.style.display = 'block';
+                analyzeBtn.disabled = true;
+                errorDiv.style.display = 'none';
+                resultDiv.style.display = 'none';
+            }
+
+            function hideLoading() {
+                loadingDiv.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+
+            function showError(message) {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                resultDiv.style.display = 'none';
+            }
+
+            function hideError() {
+                errorDiv.style.display = 'none';
+            }
+
+            function showResult() {
+                resultDiv.style.display = 'block';
+            }
+
+            function hideResult() {
+                resultDiv.style.display = 'none';
+            }
+
+            async function analyzeTicker() {
+                const ticker = document.getElementById('ticker').value.toUpperCase();
+                if (!ticker) {
+                    showError('Please enter a ticker symbol');
+                    return;
+                }
+                
+                showLoading();
+                
+                try {
+                    console.log('Sending analysis request for ticker:', ticker);
+                    const response = await fetch('/analyze', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ ticker })
+                    });
+
+                    console.log('Received response:', response.status);
+                    const data = await response.json();
+                    console.log('Response data:', data);
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Analysis failed');
+                    }
+
+                    if (!data.success) {
+                        throw new Error(data.error || 'Analysis failed');
+                    }
+
+                    console.log('Analysis data:', data);
+
+                    // Update company name display with sector
+                    const companyName = data.company_name || ticker;
+                    const sector = data.sector || 'Unknown';
+                    companyNameEl.innerHTML = `
+                        <h3 class="mb-2">${companyName} (${ticker})</h3>
+                        <p class="text-muted mb-4">Sector: ${sector}</p>
+                    `;
+
+                    // Display analysis
+                    let analysisHtml = '';
+                    
+                    // Display each year's analysis
+                    if (data.analyses && data.analyses.length > 0) {
+                        data.analyses.forEach(analysis => {
+                            analysisHtml += `
+                                <div class="year-analysis mb-4">
+                                    <h4 class="mb-3">Fiscal Year ${analysis.year}</h4>
+                                    <p class="text-muted mb-3">Filing Date: ${analysis.filing_date}</p>
+                                    
+                                    ${analysis.metrics ? `
+                                        <div class="metrics-section mb-4">
+                                            <h5 class="mb-3">Key Financial Metrics</h5>
+                                            <div class="table-responsive">
+                                                <table class="metrics-table">
+                                                    <tbody>
+                                                        ${Object.entries(analysis.metrics).map(([key, value]) => `
+                                                            <tr>
+                                                                <td>${key.replace(/_/g, ' ').toUpperCase()}</td>
+                                                                <td>${typeof value === 'number' ? value.toLocaleString() : value}</td>
+                                                            </tr>
+                                                        `).join('')}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                    
+                                    ${analysis.summary ? `
+                                        <div class="summary-section">
+                                            <h5 class="mb-3">Analysis Summary</h5>
+                                            <div class="analysis-content p-3 bg-light rounded">
+                                                ${marked.parse(analysis.summary)}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        });
+                    } else {
+                        analysisHtml = '<div class="alert alert-info">No analysis data available.</div>';
+                    }
+
+                    // Add custom styles for markdown content
+                    const styleSheet = document.createElement('style');
+                    styleSheet.textContent = `
+                        .analysis-content h3 {
+                            color: var(--primary-color);
+                            font-size: 1.5rem;
+                            font-weight: 600;
+                            margin-top: 1.5rem;
+                            margin-bottom: 1rem;
+                            padding-bottom: 0.5rem;
+                            border-bottom: 2px solid var(--border-color);
+                        }
+                        .analysis-content h4 {
+                            color: var(--text-color);
+                            font-size: 1.25rem;
+                            font-weight: 600;
+                            margin-top: 1.25rem;
+                            margin-bottom: 0.75rem;
+                        }
+                        .analysis-content h5 {
+                            color: var(--text-color);
+                            font-size: 1.1rem;
+                            font-weight: 600;
+                            margin-top: 1rem;
+                            margin-bottom: 0.5rem;
+                        }
+                        .analysis-content strong {
+                            color: var(--primary-color);
+                            font-weight: 600;
+                        }
+                        .analysis-content p {
+                            margin-bottom: 1rem;
+                            line-height: 1.6;
+                        }
+                        .analysis-content ul, .analysis-content ol {
+                            margin-bottom: 1rem;
+                            padding-left: 1.5rem;
+                        }
+                        .analysis-content li {
+                            margin-bottom: 0.5rem;
+                        }
+                    `;
+                    document.head.appendChild(styleSheet);
+
+                    analysisContent.innerHTML = analysisHtml;
+                    showResult();
+                } catch (error) {
+                    console.error('Analysis error:', error);
+                    showError(error.message);
+                } finally {
+                    hideLoading();
+                }
+            }
+
+            // Add form submission handler
+            analyzeForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                showLoading();
+                await analyzeTicker();
+            });
+
+            copyBtn.addEventListener('click', function() {
+                const text = analysisContent.textContent;
+                navigator.clipboard.writeText(text).then(function() {
+                    const originalText = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalText;
+                    }, 2000);
+                }).catch(function() {
+                    showError('Failed to copy text');
+                });
+            });
+
+            // Handle previous analyses
+            document.querySelectorAll('.list-group-item').forEach(item => {
+                item.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    const ticker = this.dataset.ticker;
+                    const date = this.dataset.date;
+
+                    try {
+                        hideError();
+                        showLoading();
+                        hideResult();
+
+                        const response = await fetch(`/view_analysis/${ticker}/${date}`);
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(data.error || 'Failed to load analysis');
+                        }
+
+                        companyNameEl.textContent = `${ticker} - ${date}`;
+                        analysisContent.innerHTML = `
+                            <div class="year-analysis">
+                                <div class="analysis-text">${data.content}</div>
+                            </div>
+                        `;
+                        showResult();
+
+                    } catch (error) {
+                        showError(error.message);
+                    } finally {
+                        hideLoading();
+                    }
+                });
+            });
+
+            function generateMetricsSummary(metricsByYear, trends) {
+                const years = Object.keys(metricsByYear).sort().reverse();
+                let summary = '<div class="metrics-summary">';
+                
+                // Revenue Analysis
+                if (metricsByYear[years[0]]?.revenue && metricsByYear[years[0]].revenue !== 0) {
+                    const latestRevenue = metricsByYear[years[0]].revenue;
+                    const oldestRevenue = metricsByYear[years[years.length - 1]].revenue;
+                    if (oldestRevenue !== 0) {
+                        const revenueGrowth = ((latestRevenue - oldestRevenue) / oldestRevenue) * 100;
+                        summary += `<p><strong>Revenue Growth (${years[years.length - 1]}-${years[0]}):</strong> ${revenueGrowth.toFixed(1)}%</p>`;
+                    }
+                }
+
+                // Profitability Analysis
+                if (metricsByYear[years[0]]?.gross_margin && metricsByYear[years[0]].gross_margin !== 0) {
+                    const latestMargin = metricsByYear[years[0]].gross_margin * 100;
+                    const oldestMargin = metricsByYear[years[years.length - 1]].gross_margin * 100;
+                    if (oldestMargin !== 0) {
+                        const marginChange = latestMargin - oldestMargin;
+                        summary += `<p><strong>Gross Margin Trend:</strong> ${marginChange > 0 ? 'Improved' : 'Declined'} from ${oldestMargin.toFixed(1)}% to ${latestMargin.toFixed(1)}%</p>`;
+                    }
+                }
+
+                if (metricsByYear[years[0]]?.operating_income && metricsByYear[years[0]].operating_income !== 0) {
+                    const latestOpIncome = metricsByYear[years[0]].operating_income;
+                    const oldestOpIncome = metricsByYear[years[years.length - 1]].operating_income;
+                    if (oldestOpIncome !== 0) {
+                        const opIncomeGrowth = ((latestOpIncome - oldestOpIncome) / Math.abs(oldestOpIncome)) * 100;
+                        summary += `<p><strong>Operating Income Growth:</strong> ${opIncomeGrowth.toFixed(1)}% over the period</p>`;
+                    }
+                }
+
+                // Earnings Analysis
+                if (metricsByYear[years[0]]?.eps && metricsByYear[years[0]].eps !== 0) {
+                    const latestEPS = metricsByYear[years[0]].eps;
+                    const oldestEPS = metricsByYear[years[years.length - 1]].eps;
+                    if (oldestEPS !== 0) {
+                        const epsGrowth = ((latestEPS - oldestEPS) / Math.abs(oldestEPS)) * 100;
+                        summary += `<p><strong>EPS Growth:</strong> ${epsGrowth.toFixed(1)}% over the period</p>`;
+                    }
+                }
+
+                // Returns Analysis
+                if (metricsByYear[years[0]]?.roe && metricsByYear[years[0]].roe !== 0) {
+                    const latestROE = metricsByYear[years[0]].roe * 100;
+                    const oldestROE = metricsByYear[years[years.length - 1]].roe * 100;
+                    if (oldestROE !== 0) {
+                        const roeChange = latestROE - oldestROE;
+                        summary += `<p><strong>ROE Trend:</strong> ${roeChange > 0 ? 'Improved' : 'Declined'} from ${oldestROE.toFixed(1)}% to ${latestROE.toFixed(1)}%</p>`;
+                    }
+                }
+
+                if (metricsByYear[years[0]]?.roa && metricsByYear[years[0]].roa !== 0) {
+                    const latestROA = metricsByYear[years[0]].roa * 100;
+                    const oldestROA = metricsByYear[years[years.length - 1]].roa * 100;
+                    if (oldestROA !== 0) {
+                        const roaChange = latestROA - oldestROA;
+                        summary += `<p><strong>ROA Trend:</strong> ${roaChange > 0 ? 'Improved' : 'Declined'} from ${oldestROA.toFixed(1)}% to ${latestROA.toFixed(1)}%</p>`;
+                    }
+                }
+
+                // Cash Flow Analysis
+                if (metricsByYear[years[0]]?.free_cash_flow && metricsByYear[years[0]].free_cash_flow !== 0) {
+                    const latestFCF = metricsByYear[years[0]].free_cash_flow;
+                    const oldestFCF = metricsByYear[years[years.length - 1]].free_cash_flow;
+                    if (oldestFCF !== 0) {
+                        const fcfGrowth = ((latestFCF - oldestFCF) / Math.abs(oldestFCF)) * 100;
+                        summary += `<p><strong>Free Cash Flow Growth:</strong> ${fcfGrowth.toFixed(1)}% over the period</p>`;
+                    }
+                }
+
+                summary += '</div>';
+                return summary;
+            }
+
+            function generateInvestmentRecommendations(metricsByYear, trends) {
+                const years = Object.keys(metricsByYear).sort().reverse();
+                let recommendations = '<div class="recommendations">';
+                
+                // Revenue Growth Analysis
+                if (trends?.revenue) {
+                    const revenueTrend = trends.revenue.average_growth * 100;
+                    recommendations += `<p><strong>Revenue Growth:</strong> ${revenueTrend > 0 ? 'Consistent growth' : 'Declining trend'} with ${Math.abs(revenueTrend).toFixed(1)}% average annual change</p>`;
+                }
+
+                // Profitability Analysis
+                if (trends?.gross_margin) {
+                    const marginTrend = trends.gross_margin.average_growth * 100;
+                    recommendations += `<p><strong>Profitability:</strong> ${marginTrend > 0 ? 'Improving' : 'Declining'} margins with ${Math.abs(marginTrend).toFixed(1)}% average annual change</p>`;
+                }
+
+                // Cash Flow Analysis
+                if (trends?.free_cash_flow) {
+                    const fcfTrend = trends.free_cash_flow.average_growth * 100;
+                    recommendations += `<p><strong>Cash Generation:</strong> ${fcfTrend > 0 ? 'Strong' : 'Weak'} cash flow with ${Math.abs(fcfTrend).toFixed(1)}% average annual growth</p>`;
+                }
+
+                // Return on Investment Analysis
+                if (trends?.roe) {
+                    const roeTrend = trends.roe.average_growth * 100;
+                    recommendations += `<p><strong>Return on Equity:</strong> ${roeTrend > 0 ? 'Improving' : 'Declining'} returns with ${Math.abs(roeTrend).toFixed(1)}% average annual change</p>`;
+                }
+
+                // Overall Investment Outlook
+                let positiveTrends = 0;
+                let totalTrends = 0;
+                for (const [metric, trend] of Object.entries(trends)) {
+                    if (trend.average_growth !== undefined) {
+                        totalTrends++;
+                        if (trend.average_growth > 0) positiveTrends++;
+                    }
+                }
+
+                const positivePercentage = (positiveTrends / totalTrends) * 100;
+                let outlook = '';
+                if (positivePercentage >= 75) {
+                    outlook = 'Strong positive outlook with consistent growth across key metrics.';
+                } else if (positivePercentage >= 50) {
+                    outlook = 'Moderate outlook with mixed performance across key metrics.';
+                } else {
+                    outlook = 'Cautious outlook with declining trends in several key metrics.';
+                }
+
+                recommendations += `<p><strong>Overall Investment Outlook:</strong> ${outlook}</p>`;
+                recommendations += '</div>';
+                return recommendations;
+            }
+
+            function formatMetricValue(value) {
+                if (value === undefined || value === null) return '-';
+                if (typeof value === 'number') {
+                    if (Math.abs(value) >= 1e9) {
+                        return `$${(value / 1e9).toFixed(2)}B`;
+                    } else if (Math.abs(value) >= 1e6) {
+                        return `$${(value / 1e6).toFixed(2)}M`;
+                    } else if (Math.abs(value) >= 1e3) {
+                        return `$${(value / 1e3).toFixed(2)}K`;
+                    }
+                    return `$${value.toLocaleString('en-US', {maximumFractionDigits: 2})}`;
+                }
+                return value;
+            }
+
+            function formatPercentage(value) {
+                if (value === undefined || value === null) return '-';
+                if (typeof value === 'number') {
+                    return `${(value * 100).toFixed(2)}%`;
+                }
+                return value;
+            }
+
+            function formatTrend(trend) {
+                if (!trend) return '-';
+                const growth = trend.average_growth * 100;
+                const color = growth >= 0 ? 'text-success' : 'text-danger';
+                const arrow = growth >= 0 ? '↑' : '↓';
+                return `<span class="${color}">${arrow} ${Math.abs(growth).toFixed(1)}%</span>`;
+            }
+        });
+    </script>
+</body>
+</html>
